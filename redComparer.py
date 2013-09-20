@@ -7,6 +7,10 @@ import math
 global math
 import sys
 
+#file to save changes in position of top posts, and time in which change occurred
+postVelocity = open('postVelocity.txt', 'a')
+
+#MAKE RUN FREQUENTLY WITHOUT FILLING ALLTOPPOSTS WITH REPEATED ENTRIES
 
 def main():
 	#if there is no top posts file, tell the user, 
@@ -27,13 +31,13 @@ def main():
         return
 
 def postDiff(then, now, prevPosts):
-    #ADD WAY TO TRACK CHANGES IN RANKINGS OF POSTS IN TOP 25 AT BOTH TIMES
-    #print data to files to track num changes/time 
-
     #how old is the current topPosts?
     lastTime = timeDiff(then, now)
+    elapsedTime = now - then
     #how many of the top 25 posts have changed since then?
     numPostChanges = 0
+	#how have the rankings of the posts changed?
+    rankChanges = []
 
     #read in old data
     oldList = []
@@ -50,8 +54,19 @@ def postDiff(then, now, prevPosts):
 
     #count how many differences between old and new posts
     for post in newList:
+	    #posts that fell out of top 25
         if post not in oldList:
 	        numPostChanges += 1
+        #difference in rank in posts still in (positive means they moved up)
+        else:
+            prevRank = oldList.index(post)
+            newRank = newList.index(post)
+            change = prevRank - newRank
+            rankChanges.append(change)
+
+    #write data on how much rankings changed in given time
+    velocity = (rankChanges, elapsedTime)
+    postVelocity.write(str(velocity)+'\n')
 
     if numPostChanges != 1:
         print('\n' + 'There have been', numPostChanges, 'changes in the top 25 posts in the past', lastTime)
