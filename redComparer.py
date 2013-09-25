@@ -1,4 +1,4 @@
-#compare the previous top posts to the current ones.
+#compare the previous top posts and their ranks to the current ones.
 
 import os, time
 from stat import *
@@ -9,8 +9,10 @@ import sys
 
 #file to save changes in position of top posts, and time in which change occurred
 postVelocity = open('postVelocity.txt', 'a')
+postChanges = open('postChanges.txt', 'a')
 
-#MAKE RUN FREQUENTLY WITHOUT FILLING ALLTOPPOSTS WITH REPEATED ENTRIES
+
+#MAKE RUN FREQUENTLY WITHOUT FILLING ALLTOPPOSTS WITH REPEATED ENTRIES; for now just delete repeats
 
 def main():
 	#if there is no top posts file, tell the user, 
@@ -22,7 +24,7 @@ def main():
         #time when top posts were last checked
         then =prevPostsInfo[ST_MTIME]
 
-        #the time is now:
+        #the time is now seconds since epoch
         now = time.time()
         #check for differences between old and current top posts
         postDiff(then, now, prevPosts)		
@@ -31,13 +33,13 @@ def main():
         return
 
 def postDiff(then, now, prevPosts):
-    #how old is the current topPosts?
-    lastTime = timeDiff(then, now)
+    #how old is the current topPosts in seconds?
     elapsedTime = now - then
+    #get a readable time format
+    lastTime = timeDiff(elapsedTime)
+
     #how many of the top 25 posts have changed since then?
     numPostChanges = 0
-	#how have the rankings of the posts changed?
-    rankChanges = []
 
     #read in old data
     oldList = []
@@ -57,25 +59,43 @@ def postDiff(then, now, prevPosts):
 	    #posts that fell out of top 25
         if post not in oldList:
 	        numPostChanges += 1
-        #difference in rank in posts still in (positive means they moved up)
-        else:
+
+    if numPostChanges != 1:
+        print('\n' + 'There have been', numPostChanges, 'changes in the top 25 posts in the past', lastTime)
+        postChanges.write('There have been '+str(numPostChanges)+' changes in the top 25 posts in the past '+str(lastTime)+'\n')
+    else:
+        print('\n' + 'There has been', str(numPostChanges), 'change in the top 25 posts in the past', lastTime)
+        postChanges.write('There has been '+str(numPostChanges)+' change in the top 25 posts in the past '+str(lastTime)+'\n')
+    postVel(oldList, newList, elapsedTime)
+
+
+#prints array of changes in rank, time since last update to postVelocity.txt
+def postVel(oldList, newList, elapsedTime):
+    #get the time of day
+    time = datetime.now()
+    timeTup = time.timetuple()
+    currHour = timeTup[3]
+    #keep track of how posts ranks have changed
+    rankChanges = []
+   
+    #find the changes in post ranks
+    for post in newList:
+        #of the posts still in the top 25
+        if post in oldList:
             prevRank = oldList.index(post)
             newRank = newList.index(post)
             change = prevRank - newRank
             rankChanges.append(change)
-
+        else:
+            rankChanges.append('new')
+			
     #write data on how much rankings changed in given time
-    velocity = (rankChanges, elapsedTime)
+    velocity = (rankChanges, elapsedTime, currHour)
     postVelocity.write(str(velocity)+'\n')
-
-    if numPostChanges != 1:
-        print('\n' + 'There have been', numPostChanges, 'changes in the top 25 posts in the past', lastTime)
-    else:
-        print('\n' + 'There has been', numPostChanges, 'change in the top 25 posts in the past', lastTime)
-
+        
 #organize the time into days, hours, minutes, and seconds
-def timeDiff(earlier, later):
-    diff = later - earlier
+def timeDiff(elapsedTime):
+    diff = elapsedTime
 
     #calculate units and remainders
     days = math.floor(diff/(60*60*24))
